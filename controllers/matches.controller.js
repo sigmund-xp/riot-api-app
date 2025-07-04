@@ -1,9 +1,19 @@
-const express = require('express');
-const router = express.Router();
-const riotApi = require('../services/riotApi');
+import RiotApiService from '../services/riotApi.js'
+
+// Obtener detalles de una partida específica
+export const detailMatch = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const matchData = await riotApi.getMatchDetails(matchId);
+    
+    res.json(matchData);
+  } catch (error) {
+    res.status(error.status || 500).json({ error: error.message });
+  }
+}
 
 // Obtener historial de partidas
-router.get('/:puuid', async (req, res) => {
+export const historial = async (req, res) => {
   try {
     const { puuid } = req.params;
     const { count = 10 } = req.query;
@@ -21,18 +31,4 @@ router.get('/:puuid', async (req, res) => {
   } catch (error) {
     res.status(error.status || 500).json({ error: error.message });
   }
-});
-
-// Obtener detalles de una partida específica
-router.get('/details/:matchId', async (req, res) => {
-  try {
-    const { matchId } = req.params;
-    const matchData = await riotApi.getMatchDetails(matchId);
-    
-    res.json(matchData);
-  } catch (error) {
-    res.status(error.status || 500).json({ error: error.message });
-  }
-});
-
-module.exports = router;
+}

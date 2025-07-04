@@ -1,4 +1,4 @@
-const config = {
+export const config = {
   baseURL: 'https://americas.api.riotgames.com',
   regions: {
     'br1': 'https://br1.api.riotgames.com',
@@ -15,4 +15,4 @@ const config = {
   }
 };
 
-module.exports = config;
+export default config;

@@ -1,5 +1,5 @@
-const axios = require('axios');
-const config = require('../config/riot');
+import axios from 'axios';
+import config from '../config/riot.js';
 
 class RiotApiService {
   constructor() {
@@ -72,4 +72,6 @@ class RiotApiService {
   }
 }
 
-module.exports = new RiotApiService();
+// Exportación ESM
+const riotApi = new RiotApiService();
+export default riotApi;
