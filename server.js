@@ -1,65 +1,57 @@
 import 'dotenv/config'
 import express from 'express'
+import cookieParser from 'cookie-parser'
 import cors from 'cors'
-import helmet from 'helmet'
 
-import matchesRouter from './routes/matches.route.js'
-import summonerRouter from './routes/summoner.route.js'
+import authRouter from './routes/auth.route.js'
+import balanceRouter from './routes/balance.route.js'
+import { connectDB } from './database/db.js'
 
+connectDB()
 const app = express()
 
+const whitelist = [
+  'http://localhost:8080',
+  'https://touni-cl-web.onrender.com',
+  'https://www.tudominio.com'
+]
+
 const corsOptions = {
-  origin: [process.env.ORIGIN1, process.env.ORIGIN2],
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS', 'PATCH'],
-  credentials: true
+  origin: function (origin, callback) {
+    if (whitelist.indexOf(origin) !== -1 || !origin) {
+      callback(null, true)
+    } else {
+      console.log(origin)
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }
 
-// Middlewares
-app.use(helmet())
-app.use(cors(corsOptions))
-app.use(express.json())
-
-app.use('/api/matches', matchesRouter)
-app.use('/api/summoner', summonerRouter)
-
-// Rate limiting básico
-const rateLimit = {}
 app.use((req, res, next) => {
-  const ip = req.ip
-  const now = Date.now()
-
-  if (!rateLimit[ip]) {
-    rateLimit[ip] = []
-  }
-
-  // Limpiar requests antiguos (más de 2 minutos)
-  rateLimit[ip] = rateLimit[ip].filter(time => now - time < 120000)
-
-  if (rateLimit[ip].length >= 100) {
-    return res.status(429).json({ error: 'Demasiadas peticiones' })
-  }
-
-  rateLimit[ip].push(now)
+  const start = Date.now()
+  res.on('finish', () => {
+    console.log(`${req.method.padEnd(10, ' ')} ${req.headers.origin.padEnd(50, ' ')} ${req.originalUrl.padEnd(30, ' ')} - ${res.statusCode} - ${res.message || ''} (${Date.now() - start}ms)`)
+  })
   next()
 })
 
-// Ruta de prueba
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() })
-})
+app.use(cors(corsOptions))
+app.use(express.json())
+app.use(cookieParser())
+
+// Rutas
+app.use('/api/auth', authRouter)
+app.use('/api/balance', balanceRouter)
 
 // Manejo de errores
 app.use((err, req, res, next) => {
   console.error(err.stack)
-  res.status(500).json({ error: 'Error interno del servidor' })
+  res.status(500).json({ message: 'Algo salió mal' })
 })
 
-const PORT = process.env.PORT || 3000
-try {
-  app.listen(PORT, () => {
-    console.log(`Servidor ejecutándose en puerto ${PORT}`)
-  })
-} catch (error) {
-  console.error('Error al iniciar el servidor:', error)
-  process.exit(1)
-}
+// Iniciar servidor
+const PORT = process.env.PORT || 5000
+app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`))
